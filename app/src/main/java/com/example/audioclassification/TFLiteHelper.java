@@ -64,6 +64,13 @@ public class TFLiteHelper {
             // Resize audioSamples to match (30, 150, 1) shape
             float[][][] mfccs = resizeArray(audioSamples);
 
+            // Calculate mean and std from mfccs
+            float mean = calculateMean(mfccs);
+            float std = calculateStd(mfccs);
+
+            // Standardize mfccs
+            standardize(mfccs, mean, std);
+
             // Flatten mfccs to obtain the preprocessed audio data
             int index = 0;
             for (int i = 0; i < 30; i++) {
@@ -98,11 +105,49 @@ public class TFLiteHelper {
 
         return mfccs;
     }
+
+    // Helper method to calculate mean from mfccs
+    private float calculateMean(float[][][] mfccs) {
+        float sum = 0.0f;
+        int count = 0;
+        for (int i = 0; i < 30; i++) {
+            for (int j = 0; j < 150; j++) {
+                sum += mfccs[i][j][0];
+                count++;
+            }
+        }
+        return sum / count;
+    }
+
+    // Helper method to calculate standard deviation from mfccs
+    private float calculateStd(float[][][] mfccs) {
+        float mean = calculateMean(mfccs);
+        float sum = 0.0f;
+        int count = 0;
+        for (int i = 0; i < 30; i++) {
+            for (int j = 0; j < 150; j++) {
+                float diff = mfccs[i][j][0] - mean;
+                sum += diff * diff;
+                count++;
+            }
+        }
+        float variance = sum / count;
+        return (float) Math.sqrt(variance);
+    }
+
+    // Helper method to standardize mfccs using given mean and std
+    private void standardize(float[][][] mfccs, float mean, float std) {
+        for (int i = 0; i < 30; i++) {
+            for (int j = 0; j < 150; j++) {
+                mfccs[i][j][0] = (mfccs[i][j][0] - mean) / std;
+            }
+        }
+    }
     // ----------------------------------------------------
 
     // ---- Load model file ----
     private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
-        String MODEL_NAME = "converted_model.tflite";
+        String MODEL_NAME = "audio.tflite";
         AssetFileDescriptor fileDescriptor = activity.getAssets().openFd(MODEL_NAME);
         FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
         FileChannel fileChannel = inputStream.getChannel();
