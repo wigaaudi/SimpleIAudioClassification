@@ -1,4 +1,4 @@
-#Emotion Classification for Audio Files
+# Emotion Classification for Audio Files
 
 The Emotion Classification for Audio Files application is a powerful tool that allows you to classify emotions in audio files. This user guide will provide you with step-by-step instructions on how to use this application effectively.
 
@@ -22,12 +22,16 @@ To export your application from Android Studio, follow these steps:
 ## Step 3:Classify your audio files
 
 To classify your audio files and determine the emotions, follow these steps:
-
+![image](https://github.com/wigaaudi/SimpleIAudioClassification/assets/116898134/532a494a-d84e-44b3-8918-6587f87a5604)
 1.Click the "Play Audio" button to select your audio files.
+
+![Screenshot 2023-05-30 105141](https://github.com/wigaaudi/SimpleIAudioClassification/assets/116898134/d9586aee-564d-4883-b984-8828d5b9ea90)
 2.Choose the desired audio file from your device.
 3.Once the audio file is successfully loaded, it will automatically start playing.
 4.Click the "Classify" button to initiate the emotion classification process.
 5.Wait for the classification process to complete.
+
+![image](https://github.com/wigaaudi/SimpleIAudioClassification/assets/116898134/9fd63a83-b743-44bb-8dca-bbd782874575)
 6.The result of the classification will be displayed above the "Play Audio" button.
 7.You can repeat the process for other audio files by clicking the "Play Audio" button and selecting a new file.
 8.Analyze the displayed emotion classification results for each audio file.
