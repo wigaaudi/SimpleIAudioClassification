@@ -1,7 +1,9 @@
 package com.example.audioclassification;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.res.AssetFileDescriptor;
+import android.net.Uri;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
@@ -10,11 +12,11 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
-import java.util.Map;
-
 
 
 public class TFLiteHelper {
@@ -45,40 +47,62 @@ public class TFLiteHelper {
     // ----------------------------------------------------
 
     // ---- Preprocessing audio ----
-    private float[] preprocessAudio(float[] audioData) {
-        // Convert audioData to 2D array (mfccs)
-        float[][] mfccs = new float[30][150];
+    private float[] preprocessAudio(Uri audioUri) {
+        float[] preprocessedData = new float[30 * 150 * 1];  // Initialize preprocessedData array
 
-        // Reshape audioData to match mfccs shape
+        try {
+            ContentResolver contentResolver = context.getContentResolver();
+            AssetFileDescriptor fileDescriptor = contentResolver.openAssetFileDescriptor(audioUri, "r");
+            FileInputStream inputStream = fileDescriptor.createInputStream();
+            byte[] audioBytes = new byte[inputStream.available()];
+            inputStream.read(audioBytes);
+
+            // Convert audioBytes to short array (audioSamples)
+            short[] audioSamples = new short[audioBytes.length / 2];  // Assuming audioBytes are 16-bit PCM samples (2 bytes per sample)
+            ByteBuffer.wrap(audioBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(audioSamples);
+
+            // Resize audioSamples to match (30, 150, 1) shape
+            float[][][] mfccs = resizeArray(audioSamples);
+
+            // Flatten mfccs to obtain the preprocessed audio data
+            int index = 0;
+            for (int i = 0; i < 30; i++) {
+                for (int j = 0; j < 150; j++) {
+                    preprocessedData[index] = mfccs[i][j][0];
+                    index++;
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return preprocessedData;
+    }
+
+    // Helper method to resize audioSamples to (30, 150, 1) shape
+    private float[][][] resizeArray(short[] audioSamples) {
+        float[][][] mfccs = new float[30][150][1];
+
         int index = 0;
         for (int i = 0; i < 30; i++) {
             for (int j = 0; j < 150; j++) {
-                if (index < audioData.length) {
-                    mfccs[i][j] = audioData[index];
+                if (index < audioSamples.length) {
+                    mfccs[i][j][0] = audioSamples[index] / 32768.0f;  // Normalize the audio sample to the range of [-1.0, 1.0]
                     index++;
                 } else {
-                    mfccs[i][j] = 0.0f;  // Pad with zeros if audioData is shorter than 30x150
+                    mfccs[i][j][0] = 0.0f;  // Pad with zeros if audioSamples is shorter than 30x150x1
                 }
             }
         }
 
-        // Flatten mfccs to obtain the preprocessed audio data
-        float[] preprocessedData = new float[30 * 150];
-        index = 0;
-        for (int i = 0; i < 30; i++) {
-            for (int j = 0; j < 150; j++) {
-                preprocessedData[index] = mfccs[i][j];
-                index++;
-            }
-        }
-
-        return preprocessedData;
+        return mfccs;
     }
     // ----------------------------------------------------
 
     // ---- Load model file ----
     private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
-        String MODEL_NAME = "audio_classification_model.tflite";
+        String MODEL_NAME = "converted_model.tflite";
         AssetFileDescriptor fileDescriptor = activity.getAssets().openFd(MODEL_NAME);
         FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
         FileChannel fileChannel = inputStream.getChannel();
@@ -89,9 +113,9 @@ public class TFLiteHelper {
     // ----------------------------------------------------
 
     // ---- Audio classification ----
-    public String classifyAudio(float[] audioData) {
+    public String classifyAudio(Uri audioUri) {
         // Preprocess the audio data
-        float[] preprocessedData = preprocessAudio(audioData);
+        float[] preprocessedData = preprocessAudio(audioUri);
 
         // Prepare input and output buffers
         int inputTensorIndex = 0;

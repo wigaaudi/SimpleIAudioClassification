@@ -79,8 +79,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             if (audioUri != null) {
-                float[] audioData = extractAudioDataFromUri(audioUri);
-                String label = tfLiteHelper.classifyAudio(audioData);
+                String label = tfLiteHelper.classifyAudio(audioUri);
                 setLabel(label);
             }
         }
